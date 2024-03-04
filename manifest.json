@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"id": "generate-and-diff",
+	"name": "Generate and Diff",
+	"version": "0.0.1",
+	"minAppVersion": "1.15.0",
+	"description": "Compare your file tree across devices.",
+	"author": "Rebbecca Bishop (Sigrunixia)",
+	"authorUrl": "https://github.com/sigrunixia",
+	"fundingUrl": "ko-fi.com/sigrunixia",
 	"isDesktopOnly": false
 }

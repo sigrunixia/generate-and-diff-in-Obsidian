@@ -79,12 +79,18 @@ export default class GenerateDiffPlugin extends Plugin {
         const fileName = `${DIRECTORY_PATH}/${timestamp}-${deviceName}.md`;
 
         // Ensure the directory exists, and if not, create it
-        await this.ensureDirectoryExists(DIRECTORY_PATH);
-        // Create the file in the directory
-        await this.app.vault.create(fileName, fileContent);
+        const directoryExists = await this.app.vault.adapter.exists(DIRECTORY_PATH);
+        if (!directoryExists) {
+            await this.app.vault.createFolder(DIRECTORY_PATH);
+        }
 
-		// Log the file list
-        console.log("Your file has been generated.");
+        // try and catch for file generation
+        try {
+            await this.app.vault.create(fileName, fileContent);
+            console.log(`File list generated: ${fileName}`);
+        } catch (error) {
+            console.error(`Error generating file list: ${error}`);
+        }
     }
 
     // compare files once the command is called
@@ -122,7 +128,7 @@ export default class GenerateDiffPlugin extends Plugin {
         let comparisonResults = '# Comparison Results\n\n';
         // Loop through the file map
         for (const [filePath, devices] of Object.entries(fileMap)) {
-            // If the devices length is greater than 1
+            // If the file exists on only one device
             if (devices.length === 1) {
                 // Add the comparison results
                 comparisonResults += `- **Path**: ${filePath} | **Exists on**: ${devices[0]}\n`;
@@ -136,8 +142,13 @@ export default class GenerateDiffPlugin extends Plugin {
         const resultsFileName = `${RESULTS_DIRECTORY_PATH}/${timestamp}-comparison-results.md`;
 
         // Ensure the results directory exists
-        await this.ensureDirectoryExists(RESULTS_DIRECTORY_PATH);
-		// Create the results file
+        const resultsDirectoryExists = await this.app.vault.adapter.exists(RESULTS_DIRECTORY_PATH);
+        if (!resultsDirectoryExists) {
+            await this.app.vault.createFolder(RESULTS_DIRECTORY_PATH);
+        }
+
+
+        // Create the results file
         await this.app.vault.create(resultsFileName, comparisonResults);
 
         // Log the comparison results

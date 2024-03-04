@@ -9,10 +9,26 @@ import {GenerateDiffPluginUtils} from 'src/utils';
 
 // Create Plugin wrapper
 export default class GenerateDiffPlugin extends Plugin {
+    device: string;
+
+    // Try to detect device status
+    get syncPlugin() {
+        return this.app.internalPlugins.getPluginById("sync");
+    }
+
     // Plugin is loaded
     async onload() {
         // Print that the plugin has been loaded
         console.log("Loading Generate and Diff " + this.manifest.version);
+
+        // Get device names
+        const syncEnabled = this.syncPlugin?.instance != undefined;
+        this.device = syncEnabled
+            ? (this.syncPlugin.instance.deviceName.length > 0
+                ? this.syncPlugin.instance.deviceName
+                : this.syncPlugin.instance.getDefaultDeviceName())
+            : "Unknown";
+        console.debug("Generate and Diff:", this.device);
 
         // Add a command to generate file list to command palette
         this.addCommand({
@@ -31,27 +47,6 @@ export default class GenerateDiffPlugin extends Plugin {
         });
         // Nothing else we need to do
     }
-
-    /* Functions needed for the commands below to work */
-
-    // Directory Check
-    async ensureDirectoryExists(path: string) {
-        const dirs = path.split('/');
-        let currentPath = '';
-
-        for (const dir of dirs) {
-            currentPath += dir + '/';
-            const existingFolder = this.app.vault.getAbstractFileByPath(currentPath);
-
-            if (!existingFolder) {
-                console.log(`Creating folder: ${currentPath}`);
-                await this.app.vault.createFolder(currentPath);
-            } else {
-                console.log(`Folder already exists: ${currentPath}`);
-            }
-        }
-    }
-
 
     /* Now we move onto running the commands */
 

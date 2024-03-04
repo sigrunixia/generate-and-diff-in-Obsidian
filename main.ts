@@ -1,99 +1,150 @@
-import { Plugin, TFile } from 'obsidian';
+/// <reference path="src/types.ts" />
 
-export default class DiffAndComparePlugin extends Plugin {
-	async onload() {
-		this.addCommand({
-			id: 'generate-file-list',
-			name: 'Generate File List',
-			callback: () => this.generateFileList(),
-		});
+// Import from Obsidian API
+import {Plugin} from 'obsidian';
 
-		this.addCommand({
-			id: 'compare-files',
-			name: 'Compare Files',
-			callback: () => this.compareFiles(),
-		});
+// Import from SRC
+import {DIRECTORY_PATH, RESULTS_DIRECTORY_PATH} from 'src/constants';
+import {GenerateDiffPluginUtils} from 'src/utils';
+
+// Create Plugin wrapper
+export default class GenerateDiffPlugin extends Plugin {
+    // Plugin is loaded
+    async onload() {
+        // Print that the plugin has been loaded
+        console.log("Loading Generate and Diff " + this.manifest.version);
+
+        // Add a command to generate file list to command palette
+        this.addCommand({
+            // Give it an id
+            id: 'generate-file-list', // Give it a name
+            name: 'Generate File List', // Give it a callback
+            callback: () => this.generateFileList(),
+        });
+
+        // Add a command to compare files to command palette
+        this.addCommand({
+            // Give it an id
+            id: 'compare-files', // Give it a name
+            name: 'Compare Files', // Give it a callback
+            callback: () => this.compareFiles(),
+        });
+        // Nothing else we need to do
+    }
+
+    /* Functions needed for the commands below to work */
+
+    // Directory Check
+    async ensureDirectoryExists(path: string) {
+        const dirs = path.split('/');
+        let currentPath = '';
+
+        for (const dir of dirs) {
+            currentPath += dir + '/';
+            const existingFolder = this.app.vault.getAbstractFileByPath(currentPath);
+
+            if (!existingFolder) {
+                console.log(`Creating folder: ${currentPath}`);
+                await this.app.vault.createFolder(currentPath);
+            } else {
+                console.log(`Folder already exists: ${currentPath}`);
+            }
+        }
+    }
+
+
+    /* Now we move onto running the commands */
+
+    // Generate file list once the command is called
+    async generateFileList() {
+        // Get all the files in the vault and call it with files
+        const files = this.app.vault.getFiles();
+        // Create a file content
+        let fileContent = '# File List\n\n';
+
+        // Loop through the files recursively
+        for (const file of files) {
+            // Get the file stats
+            const fileStats = file.stat;
+            // Add the file path and last modified date to the file content
+            fileContent += `- **Path**: ${file.path} | **Last Modified**: ${new Date(fileStats.mtime).toLocaleString()}\n`;
+            // End loop
+        }
+
+        // Get the device name
+        const deviceName = GenerateDiffPluginUtils.getDeviceName();
+        // Get the timestamp
+        const timestamp = GenerateDiffPluginUtils.formatDate(new Date());
+        // Create the file name
+        const fileName = `${DIRECTORY_PATH}/${timestamp}-${deviceName}.md`;
+
+        // Ensure the directory exists, and if not, create it
+        await this.ensureDirectoryExists(DIRECTORY_PATH);
+        // Create the file in the directory
+        await this.app.vault.create(fileName, fileContent);
+
+		// Log the file list
+        console.log("Your file has been generated.");
+    }
+
+    // compare files once the command is called
+    async compareFiles() {
+        // Get all the files in the vault and call it with files
+        const fileList = this.app.vault.getFiles().filter(file => file.path.startsWith(DIRECTORY_PATH + '/') && !file.path.startsWith(RESULTS_DIRECTORY_PATH + '/'));
+        // Create a file map
+        let fileMap: { [key: string]: string[] } = {};
+
+        // Loop through the files recursively
+        for (const file of fileList) {
+            // Get the file content
+            const fileContent = await this.app.vault.read(file);
+            // Get the lines and determine where linebreaks are
+            const lines = fileContent.split('\n').filter(line => line.startsWith('- **Path**:'));
+            // Get the device name
+            const deviceName = file.name.split('-').pop()?.split('.')[0] ?? 'Unknown';
+
+            // Loop through the lines
+            for (const line of lines) {
+                // Get the file path
+                const filePath = line.split('|')[0].trim().replace('- **Path**: ', '');
+                // If the file path doesn't exist in the file map, create an empty array
+                if (!fileMap[filePath]) {
+                    // Create an empty array
+                    fileMap[filePath] = [];
+                }
+                // Push the device name to the file map
+                fileMap[filePath].push(deviceName);
+            }
+            // End loop
+        }
+
+        // Create a comparison results
+        let comparisonResults = '# Comparison Results\n\n';
+        // Loop through the file map
+        for (const [filePath, devices] of Object.entries(fileMap)) {
+            // If the devices length is greater than 1
+            if (devices.length === 1) {
+                // Add the comparison results
+                comparisonResults += `- **Path**: ${filePath} | **Exists on**: ${devices[0]}\n`;
+            }
+            // End loop
+        }
+
+        // Get the timestamp
+        const timestamp = GenerateDiffPluginUtils.formatDate(new Date());
+        // Create the results file name
+        const resultsFileName = `${RESULTS_DIRECTORY_PATH}/${timestamp}-comparison-results.md`;
+
+        // Ensure the results directory exists
+        await this.ensureDirectoryExists(RESULTS_DIRECTORY_PATH);
+		// Create the results file
+        await this.app.vault.create(resultsFileName, comparisonResults);
+
+        // Log the comparison results
+        console.log("Your results have been compared.");
+    }
+
+	async onunload() {
+		console.log('Unloading Generate and Diff');
 	}
-
-	getDeviceName(): string {
-		const platform = navigator.platform.toLowerCase();
-		if (platform.includes('win')) return 'Windows';
-		if (platform.includes('mac')) return 'Mac';
-		if (platform.includes('linux')) return 'Linux';
-		if (platform.includes('iphone') || platform.includes('ipad')) return 'iOS';
-		if (platform.includes('android')) return 'Android';
-		return 'Unknown';
-	}
-
-	async generateFileList() {
-		const files = this.app.vault.getFiles();
-		let fileContent = '# File List\n\n';
-
-		for (const file of files) {
-			if (file instanceof TFile) {
-				const fileStats = file.stat;
-				fileContent += `- **Path**: ${file.path} | **Last Modified**: ${new Date(fileStats.mtime).toLocaleString()}\n`;
-			}
-		}
-
-		const deviceName = this.getDeviceName();
-		const timestamp = new Date().toISOString().replace(/:/g, '-');
-		const directoryPath = 'diff-and-compare';
-		const fileName = `${directoryPath}/${timestamp}-${deviceName}.md`;
-
-		// Check if the directory exists, and create it if it doesn't
-		const directoryExists = await this.app.vault.adapter.exists(directoryPath);
-		if (!directoryExists) {
-			await this.app.vault.createFolder(directoryPath);
-		}
-
-		await this.app.vault.create(fileName, fileContent);
-	}
-
-	async compareFiles() {
-		const directoryPath = 'generate-and-compare';
-		const resultsDirectoryPath = `${directoryPath}/results`;
-		const fileList = this.app.vault.getFiles().filter(file => file.path.startsWith(directoryPath + '/') && !file.path.startsWith(resultsDirectoryPath + '/'));
-
-		// Read the contents of each file and store them in a map
-		const fileContentsMap = new Map<string, Set<string>>();
-		for (const file of fileList) {
-			const content = await this.app.vault.read(file);
-			const lines = content.split('\n').filter(line => line.startsWith('- **Path**:'));
-			const filePaths = new Set(lines.map(line => line.split('|')[0].trim().replace('- **Path**:', '').trim()));
-			fileContentsMap.set(file.name, filePaths);
-		}
-
-		// Compare the file paths and find differences
-		let comparisonResults = '# Comparison Results\n\n';
-		fileContentsMap.forEach((filePaths, fileName) => {
-			comparisonResults += `## Differences in ${fileName}\n\n`;
-			fileContentsMap.forEach((otherFilePaths, otherFileName) => {
-				if (fileName !== otherFileName) {
-					const missingInOther = Array.from(filePaths).filter(path => !otherFilePaths.has(path));
-					if (missingInOther.length > 0) {
-						comparisonResults += `### Missing in ${otherFileName}\n`;
-						missingInOther.forEach(missingPath => {
-							comparisonResults += `- ${missingPath}\n`;
-						});
-						comparisonResults += '\n';
-					}
-				}
-			});
-		});
-
-		const timestamp = new Date().toISOString().replace(/:/g, '-');
-		const resultsFileName = `${resultsDirectoryPath}/${timestamp}-comparison-results.md`;
-
-		// Ensure the results directory exists
-		const resultsDirectoryExists = await this.app.vault.adapter.exists(resultsDirectoryPath);
-		if (!resultsDirectoryExists) {
-			await this.app.vault.createFolder(resultsDirectoryPath);
-		}
-
-		await this.app.vault.create(resultsFileName, comparisonResults);
-	}
-
-
-
 }

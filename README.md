@@ -27,6 +27,17 @@ After generating the files for comparison from each device, follow these steps o
 ### Deleting the Directory
 
 To ensure a fresh start for the next comparison, delete the `generate-and-diff` directory when you have completed your comparison.
+
 ## Installing the plugin
 
 TBD
+
+
+## A thanks to
+
+[Ebullient](https://github.com/ebullient), who provided me a space to learn in peace, and a constant source of encouragement.
+
+[Javalent](https://github.com/valentine195), for being willing to answer questions, no matter how mundane.
+
+Github Copilot, for being so good that I had to turn it off so I can actually learn something. 
+

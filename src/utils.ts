@@ -10,11 +10,19 @@ export class GenerateDiffPluginUtils {
     }
 
     static getDeviceName(): string {
-        const platform = navigator.platform.toLowerCase();
-        if (platform.includes('win')) return 'Windows';
-        if (platform.includes('mac')) return 'Mac';
+        let platform: string = '';
+
+        if (navigator.userAgent) {
+            platform = navigator.userAgent.toLowerCase();
+        }
+
+        if (platform.includes('windows')) return 'Windows';
+        if (platform.includes('macintosh')) {
+            if (platform.includes('mobile')) return 'iPadOS';
+            return 'Mac';
+        }
         if (platform.includes('linux')) return 'Linux';
-        if (platform.includes('iphone') || platform.includes('ipad')) return 'iOS';
+        if (platform.includes('iphone')) return 'iOS';
         if (platform.includes('android')) return 'Android';
         return 'Unknown';
     }

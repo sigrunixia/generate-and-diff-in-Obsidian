@@ -30,7 +30,16 @@ To ensure a fresh start for the next comparison, delete the `generate-and-diff` 
 
 ## Installing the plugin
 
-TBD
+This plugin needs one more revision before I will add it to the community store. Until then, it can be installed with BRAT.
+
+### Install using BRAT
+1. Install BRAT from the Obsidian community store.
+2. Enable BRAT.
+3. Go to BRAT settings
+4. Under **Beta Plugin Settings** select **Add Beta plugin**.
+5. Paste in the link to this repository. `https://github.com/sigrunixia/generate-and-diff-in-Obsidian`
+6. BRAT will say the plugin has been registered.
+7. Go to **Community Plugins** and confirm Generate and Diff is toggled on. 
 
 
 ## A thanks to
